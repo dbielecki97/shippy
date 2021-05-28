@@ -4,6 +4,7 @@ services:
 
   # Services
   consignment:
+    container_name: consignment
     restart: always
     build: ./shippy-service-consignment
     depends_on:
@@ -16,22 +17,42 @@ services:
       DB_HOST: "mongodb://datastore:27017"
 
   vessel:
+    container_name: vessel
     restart: always
     build: ./shippy-service-vessel
     ports:
       - 50052:50051
     environment:
-      MICRO_SERVER_ADDRESS: ":50052"
+      MICRO_SERVER_ADDRESS: ":50051"
       DB_HOST: "mongodb://datastore:27017"
+
+  user:
+    restart: always
+    container_name: user
+    build: ./shippy-service-user
+    ports:
+      - 50053:50051
+    depends_on:
+      - database
+    environment:
+      MICRO_SERVER_ADDRESS: ":50051"
+      DB_HOST: "database"
+      DB_USER: "admin"
+      DB_NAME: "shippy"
+      DB_PASSWORD: "password"
+
 
   # Commands
   cli:
     build: ./shippy-cli-consignment
 
+  user-cli:
+    build: ./shippy-cli-user
+
   # Database tier
   datastore:
     image: mongo
-    container_name: "datastore"
+    container_name: datastore
     environment:
       - MONGO_DATA_DIR=/data/db
       - MONGO_LOG_DIR=/dev/null
@@ -40,3 +61,13 @@ services:
     ports:
       - 27017:27017
     command: mongod --logpath=/dev/null
+
+  database:
+    container_name: database
+    image: postgres:alpine
+    environment:
+      POSTGRES_DB: shippy
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: admin
+    ports:
+      - 5432:5432
