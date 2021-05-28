@@ -10,7 +10,8 @@ ENV GO111MODULE=on
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o shippy-service-consignment
+# CHANGE THIS LINE:
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o shippy-service-consignment *.go
 
 # Run container
 FROM alpine:latest

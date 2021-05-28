@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/logger"
 	pb "github.com/dbielecki97/shippy/shippy-service-consignment/proto/consignment"
 )
 
@@ -27,10 +28,10 @@ func parseFile(file string) (*pb.Consignment, error) {
 }
 
 func main() {
-	service := micro.NewService(micro.Name("shippy.consignment.cli"))
+	service := micro.NewService(micro.Name("shippy.cli.consignment"))
 	service.Init()
 
-	client := pb.NewShippingService("shippy.consignment.service", service.Client())
+	client := pb.NewShippingService("shippy.service.consignment", service.Client())
 
 	// Contact the server and print out its response.
 	file := defaultFilename
@@ -50,6 +51,7 @@ func main() {
 	}
 	log.Printf("Created: %t", r.Created)
 
+	logger.Info("GetConsignments")
 	getAll, err := client.GetConsignments(context.Background(), &pb.GetRequest{})
 	if err != nil {
 		log.Fatalf("Could not list consignments: %v", err)

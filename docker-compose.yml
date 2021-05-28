@@ -21,7 +21,7 @@ services:
     ports:
       - 50052:50051
     environment:
-      MICRO_SERVER_ADDRESS: ":50051"
+      MICRO_SERVER_ADDRESS: ":50052"
       DB_HOST: "mongodb://datastore:27017"
 
   # Commands
@@ -38,5 +38,5 @@ services:
     volumes:
       - ./data/db:/data/db # ensures data persistence between restarting
     ports:
-      - 27017
+      - 27017:27017
     command: mongod --logpath=/dev/null
