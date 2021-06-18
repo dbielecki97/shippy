@@ -1,30 +1,33 @@
 package main
 
 import (
-	"github.com/asim/go-micro/v3"
-	"log"
-	"os"
-
+	"errors"
+	"github.com/asim/go-micro/v3/client"
+	"github.com/asim/go-micro/v3/cmd"
+	microErrors "github.com/asim/go-micro/v3/errors"
 	pb "github.com/dbielecki97/shippy/shippy-service-user/proto/user"
 	"golang.org/x/net/context"
+	"log"
+	"net/http"
+	"os"
+	"time"
 )
 
 func main() {
 
-	service := micro.NewService(
-		micro.Name("shippy.cli.user"),
-		micro.Version("latest"),
-	)
+	cmd.Init()
 
-	// Init will parse the command line flags.
-	service.Init()
+	log.Println(os.Args)
 
-	client := pb.NewUserService("shippy.service.user", service.Client())
+	if len(os.Args) < 3 {
+		log.Fatal(errors.New("Not enough arguments, expecing file and token."))
+	}
 
-	//name := "Dawid Bielecki"
-	email := "dawid.bielecki97@gmail.com"
-	password := "test123"
-	//company := "Acaisoft"
+	//name := os.Args[1]
+	email := os.Args[2]
+	password := os.Args[3]
+	//company := os.Args[4]
+	client := pb.NewUserService("shippy.service.user", client.NewClient(client.RequestTimeout(30*time.Second)))
 
 	//r, err := client.Create(context.Background(), &pb.User{
 	//	Name:     name,
@@ -52,7 +55,12 @@ func main() {
 	})
 
 	if err != nil {
-		log.Fatalf("Could not authenticate user: %s error: %v\n", email, err)
+		e := microErrors.Parse(err.Error())
+		if e.Code == http.StatusForbidden {
+			log.Fatalf("Could not authenticate user: %s error: %v\n", email, e)
+		} else {
+			log.Fatalf("Could not authenticate user: %s error: %v\n", email, err)
+		}
 	}
 
 	log.Printf("Your access token is: %s \n", authResponse.Token)

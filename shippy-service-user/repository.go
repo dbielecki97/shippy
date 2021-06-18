@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"github.com/asim/go-micro/v3/logger"
+	microErrors "github.com/asim/go-micro/v3/errors"
 	pb "github.com/dbielecki97/shippy/shippy-service-user/proto/user"
 	"github.com/jmoiron/sqlx"
 )
@@ -69,8 +69,7 @@ func UnmarshalUser(user *User) *pb.User {
 func (r *PostgresRepository) GetAll(ctx context.Context) ([]*User, error) {
 	users := make([]*User, 0)
 	if err := r.db.Select(&users, "select * from users"); err != nil {
-		logger.Error(err)
-		return users, err
+		return users, microErrors.InternalServerError("shippy.service.user", err.Error())
 	}
 
 	return users, nil

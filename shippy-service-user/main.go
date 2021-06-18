@@ -2,9 +2,8 @@ package main
 
 import (
 	"github.com/asim/go-micro/v3"
-	"log"
-
 	pb "github.com/dbielecki97/shippy/shippy-service-user/proto/user"
+	"log"
 )
 
 const schema = `

@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	microErrors "github.com/asim/go-micro/v3/errors"
 	"github.com/asim/go-micro/v3/logger"
 
 	pb "github.com/dbielecki97/shippy/shippy-service-consignment/proto/consignment"
 	vesselProto "github.com/dbielecki97/shippy/shippy-service-vessel/proto/vessel"
-	"github.com/pkg/errors"
 )
 
 type handler struct {
@@ -27,7 +27,7 @@ func (s *handler) CreateConsignment(ctx context.Context, req *pb.Consignment, re
 		Capacity:  int32(len(req.Containers)),
 	})
 	if vesselResponse == nil {
-		return errors.New("error fetching vessel, returned nil")
+		return microErrors.NotFound("shippy.service.consignment", "no available vessels")
 	}
 
 	if err != nil {

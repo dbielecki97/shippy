@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"errors"
+	"github.com/asim/go-micro/v3/errors"
 	"github.com/asim/go-micro/v3/logger"
-	uuid "github.com/satori/go.uuid"
-
 	pb "github.com/dbielecki97/shippy/shippy-service-user/proto/user"
+	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type authable interface {
@@ -47,18 +48,15 @@ func (s *handler) GetAll(ctx context.Context, req *pb.Request, res *pb.Response)
 func (s *handler) Auth(ctx context.Context, req *pb.User, res *pb.Token) error {
 	user, err := s.repository.GetByEmail(ctx, req.Email)
 	if err != nil {
-		logger.Error(err)
-		return err
+		return status.Errorf(codes.Unauthenticated, "invalid user")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		logger.Error(err)
-		return err
-	}
+		return status.Errorf(codes.Unauthenticated, "invalid password")
 
-	token, err := s.tokenService.Encode(req)
+	}
+	token, err := s.tokenService.Encode(UnmarshalUser(user))
 	if err != nil {
-		logger.Error(err)
 		return err
 	}
 
@@ -67,7 +65,6 @@ func (s *handler) Auth(ctx context.Context, req *pb.User, res *pb.Token) error {
 }
 
 func (s *handler) Create(ctx context.Context, req *pb.User, res *pb.Response) error {
-	logger.Info("start Create")
 	hashedPass, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -86,13 +83,15 @@ func (s *handler) Create(ctx context.Context, req *pb.User, res *pb.Response) er
 }
 
 func (s *handler) ValidateToken(ctx context.Context, req *pb.Token, res *pb.Token) error {
+	logger.Info("ValidateToken")
 	claims, err := s.tokenService.Decode(req.Token)
 	if err != nil {
+		logger.Error(err)
 		return err
 	}
 
 	if claims.User.Id == "" {
-		return errors.New("invalid user")
+		return errors.Unauthorized("shippy.service.user", "invalid user")
 	}
 
 	res.Valid = true

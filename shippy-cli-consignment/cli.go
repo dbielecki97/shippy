@@ -1,16 +1,18 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"github.com/asim/go-micro/v3/client"
+	"github.com/asim/go-micro/v3/cmd"
+	"github.com/asim/go-micro/v3/logger"
+	"github.com/asim/go-micro/v3/metadata"
+	pb "github.com/dbielecki97/shippy/shippy-service-consignment/proto/consignment"
+	"google.golang.org/grpc/status"
 	"io/ioutil"
 	"log"
 	"os"
-
-	"context"
-
-	"github.com/asim/go-micro/v3"
-	"github.com/asim/go-micro/v3/logger"
-	pb "github.com/dbielecki97/shippy/shippy-service-consignment/proto/consignment"
 )
 
 const (
@@ -28,16 +30,23 @@ func parseFile(file string) (*pb.Consignment, error) {
 }
 
 func main() {
-	service := micro.NewService(micro.Name("shippy.cli.consignment"))
-	service.Init()
 
-	client := pb.NewShippingService("shippy.service.consignment", service.Client())
+	cmd.Init()
 
+	// Create new greeter client
+	client := pb.NewShippingService("shippy.service.consignment", client.DefaultClient)
+	logger.Info("Created consignment client: ", client)
 	// Contact the server and print out its response.
 	file := defaultFilename
-	if len(os.Args) > 1 {
-		file = os.Args[1]
+	var token string
+	log.Println(os.Args)
+
+	if len(os.Args) < 3 {
+		log.Fatal(errors.New("Not enough arguments, expecing file and token."))
 	}
+
+	file = os.Args[1]
+	token = os.Args[2]
 
 	consignment, err := parseFile(file)
 
@@ -45,14 +54,22 @@ func main() {
 		log.Fatalf("Could not parse file: %v", err)
 	}
 
-	r, err := client.CreateConsignment(context.Background(), consignment)
+	// Create a new context which contains our given token.
+	// This same context will be passed into both the calls we make
+	// to our consignment-service.
+	ctx := metadata.NewContext(context.Background(), map[string]string{
+		"token": token,
+	})
+	// First call using our tokenised context
+	r, err := client.CreateConsignment(ctx, consignment)
 	if err != nil {
-		log.Fatalf("Could not greet: %v", err)
+		s, _ := status.FromError(err)
+		log.Fatal(s)
 	}
 	log.Printf("Created: %t", r.Created)
 
-	logger.Info("GetConsignments")
-	getAll, err := client.GetConsignments(context.Background(), &pb.GetRequest{})
+	// Second call
+	getAll, err := client.GetConsignments(ctx, &pb.GetRequest{})
 	if err != nil {
 		log.Fatalf("Could not list consignments: %v", err)
 	}
